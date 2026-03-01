@@ -1,0 +1,102 @@
+{
+  "skill_name": "tech-doc-reviewer",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Hey can you review this ADR my team wrote? I want to know if it's solid before I approve it.\n\n---\n# ADR-042: Switch from REST to gRPC for internal service communication\n\n## Status\nProposed\n\n## Context\nOur microservices currently communicate over REST/JSON. As we've scaled to 40+ services, we're seeing latency issues and payload size is becoming a concern. The platform team has been investigating alternatives.\n\n## Decision\nWe will migrate internal service-to-service communication to gRPC using Protocol Buffers.\n\n## Consequences\n- Reduced payload size (~60-70% smaller than JSON)\n- Strongly typed contracts between services\n- Need to invest in tooling and team training\n- HTTP/2 required on all internal services\n\n## Alternatives Considered\nNone documented at this time.\n---\n\nGive me your honest take.",
+      "expected_output": "Inline review with tagged comments on the ADR sections, calling out the missing alternatives, incomplete consequences, and lack of migration plan. Should include a summary verdict and mentor note.",
+      "assertions": [
+        {
+          "name": "flags_missing_alternatives",
+          "description": "Review explicitly calls out that 'Alternatives Considered' section is empty/undone"
+        },
+        {
+          "name": "identifies_migration_risk",
+          "description": "Review raises concern about rollout/migration plan for 40+ services"
+        },
+        {
+          "name": "uses_comment_tags",
+          "description": "Review uses the ⚠️/✅/🔍/💡 tagging system"
+        },
+        {
+          "name": "includes_summary_verdict",
+          "description": "Review ends with a Summary section including a verdict"
+        },
+        {
+          "name": "includes_mentor_note",
+          "description": "Summary includes a Mentor note section"
+        },
+        {
+          "name": "flags_missing_dace",
+          "description": "Review flags that the ADR has no DACE section (Driver, Approver, Contributors, Escalation)"
+        },
+        {
+          "name": "flags_missing_implications",
+          "description": "Review flags that the ADR has no Implications section"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Can you take a look at this design doc? It's for a new internal feature flag service we're building.\n\n---\n# Design Doc: Feature Flag Service (FFS)\n\n## Overview\nWe need a centralized feature flag service to replace the current approach of hardcoding flags in environment variables per deployment. This will allow us to toggle features at runtime without redeployment.\n\n## Goals\n- Enable runtime feature toggling per environment (dev/staging/prod)\n- Support gradual rollouts (% of users)\n- Admin UI for non-engineers to manage flags\n- Audit log of all changes\n\n## Proposed Architecture\nA new standalone service with:\n- Postgres DB for flag storage\n- Redis cache (TTL: 5 minutes) in front of Postgres\n- REST API consumed by all services via a shared SDK\n- React admin UI\n\n## API Design\n```\nGET /flags/{flag_name}?user_id={id}\nPOST /flags  (create)\nPUT /flags/{flag_name}  (update)\nDELETE /flags/{flag_name}\n```\n\n## SDK\nEach service will import our internal SDK. The SDK will call the FFS API on every flag check, with a local in-memory cache backed by Redis.\n\n## Rollout Plan\nPhase 1: Build and deploy FFS\nPhase 2: Migrate existing env-var flags\nPhase 3: Deprecate old approach\n\n## Open Questions\n- Should we support flag targeting by attributes other than user_id?\n---",
+      "expected_output": "Detailed inline review covering: missing failure modes (what happens if FFS is down?), SDK latency/coupling concerns, missing non-goals, incomplete rollout plan with no timeline or ownership. Should acknowledge solid parts like audit log and Redis cache.",
+      "assertions": [
+        {
+          "name": "raises_availability_concern",
+          "description": "Review raises the critical concern: what happens to dependent services if FFS goes down?"
+        },
+        {
+          "name": "questions_sdk_coupling",
+          "description": "Review questions the tight coupling of all services to FFS via SDK on every flag check"
+        },
+        {
+          "name": "notes_missing_nongals",
+          "description": "Review points out the doc lacks a Non-goals section"
+        },
+        {
+          "name": "acknowledges_strengths",
+          "description": "Review uses ✅ Strength tags on at least one genuinely good aspect"
+        },
+        {
+          "name": "includes_summary_verdict",
+          "description": "Review ends with a Summary section including a verdict"
+        },
+        {
+          "name": "flags_missing_dace",
+          "description": "Review flags that the RFC has no DACE section (Driver, Approver, Contributors, Escalation)"
+        },
+        {
+          "name": "flags_missing_implications",
+          "description": "Review flags that the RFC has no Implications section describing what concretely changes once approved"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our team wrote an RCA after last week's outage. Can you review it as a principal engineer and tell me if it's thorough enough?\n\n---\n# RCA: Payment Service Outage — March 12, 2024\n\n## Incident Summary\nThe payment service was down for 47 minutes from 14:03 to 14:50 UTC.\n\n## Timeline\n- 14:03 — Alerts fired for payment service errors\n- 14:15 — On-call engineer paged and begins investigation\n- 14:32 — Root cause identified as DB connection pool exhaustion\n- 14:45 — Mitigation deployed (pool size increased)\n- 14:50 — Service recovered\n\n## Root Cause\nJohn increased the default timeout for a downstream API call from 2s to 30s during a routine update. This caused threads to hold DB connections for much longer during periods of downstream slowness, exhausting the connection pool.\n\n## Action Items\n- Increase connection pool size (done)\n- Add alerts for connection pool usage (in progress, owner: John)\n---",
+      "expected_output": "Review should flag: blame assigned to John by name (not blameless), root cause stops at symptoms (why was timeout changeable without review?), missing 5-whys depth, action items lack dates, no systemic pattern analysis. Should praise the clear timeline.",
+      "assertions": [
+        {
+          "name": "flags_blameful_language",
+          "description": "Review explicitly calls out that naming John as the cause violates blameless RCA principles"
+        },
+        {
+          "name": "questions_root_cause_depth",
+          "description": "Review notes the root cause analysis is shallow — stops at 'John changed a setting' without asking why the system allowed it"
+        },
+        {
+          "name": "flags_missing_dates_on_action_items",
+          "description": "Review notes action items lack due dates or time-bounds"
+        },
+        {
+          "name": "identifies_systemic_gap",
+          "description": "Review asks about systemic/process gaps (e.g., no review gate on timeout changes, no circuit breakers)"
+        },
+        {
+          "name": "includes_summary_verdict",
+          "description": "Review ends with a Summary section including a verdict"
+        }
+      ]
+    }
+  ]
+}
